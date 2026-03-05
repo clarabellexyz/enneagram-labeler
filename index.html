@@ -673,42 +673,43 @@ const TYPES = [
 const SUBTYPES = { sp: 'SP', so: 'SO', sx: 'SX' };
 
 // ─── Wing data ───────────────────────────────────────────────────────────────
+const NUM_WORD = { 1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'nine' };
 const WINGS = {
   1: [
-    { w: 9, label: '1w9', title: 'The Idealist', desc: 'More detached and philosophical. The 9-wing softens the One\'s rigidity with acceptance and a longing for inner peace.' },
-    { w: 2, label: '1w2', title: 'The Advocate', desc: 'More warm and people-oriented. The 2-wing channels the One\'s principles into direct service and concern for others.' },
+    { w: 9, label: 'type-one-wing-nine', title: 'The Idealist', desc: 'More detached and philosophical. The 9-wing softens the One\'s rigidity with acceptance and a longing for inner peace.' },
+    { w: 2, label: 'type-one-wing-two', title: 'The Advocate', desc: 'More warm and people-oriented. The 2-wing channels the One\'s principles into direct service and concern for others.' },
   ],
   2: [
-    { w: 1, label: '2w1', title: 'The Servant', desc: 'More principled and self-controlled. The 1-wing gives the Two a strong sense of duty and refinement in their giving.' },
-    { w: 3, label: '2w3', title: 'The Host', desc: 'More ambitious and image-conscious. The 3-wing adds charm and drive, making this subtype highly engaging and sociable.' },
+    { w: 1, label: 'type-two-wing-one', title: 'The Servant', desc: 'More principled and self-controlled. The 1-wing gives the Two a strong sense of duty and refinement in their giving.' },
+    { w: 3, label: 'type-two-wing-three', title: 'The Host', desc: 'More ambitious and image-conscious. The 3-wing adds charm and drive, making this subtype highly engaging and sociable.' },
   ],
   3: [
-    { w: 2, label: '3w2', title: 'The Charmer', desc: 'More people-pleasing and interpersonal. The 2-wing makes the Three warmer, more relational, and attuned to others\' feelings.' },
-    { w: 4, label: '3w4', title: 'The Professional', desc: 'More introspective and image-refined. The 4-wing gives the Three depth, artistic sensibility, and a desire for authenticity.' },
+    { w: 2, label: 'type-three-wing-two', title: 'The Charmer', desc: 'More people-pleasing and interpersonal. The 2-wing makes the Three warmer, more relational, and attuned to others\' feelings.' },
+    { w: 4, label: 'type-three-wing-four', title: 'The Professional', desc: 'More introspective and image-refined. The 4-wing gives the Three depth, artistic sensibility, and a desire for authenticity.' },
   ],
   4: [
-    { w: 3, label: '4w3', title: 'The Aristocrat', desc: 'More extroverted and achievement-oriented. The 3-wing energizes the Four toward expression, performance, and external recognition.' },
-    { w: 5, label: '4w5', title: 'The Bohemian', desc: 'More withdrawn and intellectual. The 5-wing deepens the Four\'s introspection, adding a reclusive, cerebral quality.' },
+    { w: 3, label: 'type-four-wing-three', title: 'The Aristocrat', desc: 'More extroverted and achievement-oriented. The 3-wing energizes the Four toward expression, performance, and external recognition.' },
+    { w: 5, label: 'type-four-wing-five', title: 'The Bohemian', desc: 'More withdrawn and intellectual. The 5-wing deepens the Four\'s introspection, adding a reclusive, cerebral quality.' },
   ],
   5: [
-    { w: 4, label: '5w4', title: 'The Iconoclast', desc: 'More individualistic and emotionally expressive. The 4-wing gives the Five creativity, aesthetic sensitivity, and deeper self-awareness.' },
-    { w: 6, label: '5w6', title: 'The Problem Solver', desc: 'More loyal and socially engaged. The 6-wing anchors the Five in practical thinking, collaboration, and concern for systems.' },
+    { w: 4, label: 'type-five-wing-four', title: 'The Iconoclast', desc: 'More individualistic and emotionally expressive. The 4-wing gives the Five creativity, aesthetic sensitivity, and deeper self-awareness.' },
+    { w: 6, label: 'type-five-wing-six', title: 'The Problem Solver', desc: 'More loyal and socially engaged. The 6-wing anchors the Five in practical thinking, collaboration, and concern for systems.' },
   ],
   6: [
-    { w: 5, label: '6w5', title: 'The Defender', desc: 'More private and independent. The 5-wing gives the Six greater self-reliance and analytical depth to manage anxiety.' },
-    { w: 7, label: '6w7', title: 'The Buddy', desc: 'More outgoing and optimistic. The 7-wing lightens the Six\'s anxiety, adding humor, enthusiasm, and a love of adventure.' },
+    { w: 5, label: 'type-six-wing-five', title: 'The Defender', desc: 'More private and independent. The 5-wing gives the Six greater self-reliance and analytical depth to manage anxiety.' },
+    { w: 7, label: 'type-six-wing-seven', title: 'The Buddy', desc: 'More outgoing and optimistic. The 7-wing lightens the Six\'s anxiety, adding humor, enthusiasm, and a love of adventure.' },
   ],
   7: [
-    { w: 6, label: '7w6', title: 'The Entertainer', desc: 'More responsible and relationship-focused. The 6-wing grounds the Seven\'s enthusiasm with loyalty and a need for security.' },
-    { w: 8, label: '7w8', title: 'The Realist', desc: 'More assertive and pragmatic. The 8-wing gives the Seven a bold, driven edge and a willingness to go after what they want.' },
+    { w: 6, label: 'type-seven-wing-six', title: 'The Entertainer', desc: 'More responsible and relationship-focused. The 6-wing grounds the Seven\'s enthusiasm with loyalty and a need for security.' },
+    { w: 8, label: 'type-seven-wing-eight', title: 'The Realist', desc: 'More assertive and pragmatic. The 8-wing gives the Seven a bold, driven edge and a willingness to go after what they want.' },
   ],
   8: [
-    { w: 7, label: '8w7', title: 'The Maverick', desc: 'More expansive and pleasure-seeking. The 7-wing makes the Eight more visionary, charismatic, and energetically restless.' },
-    { w: 9, label: '8w9', title: 'The Bear', desc: 'More calm and receptive. The 9-wing softens the Eight\'s intensity with patience and a more measured approach to power.' },
+    { w: 7, label: 'type-eight-wing-seven', title: 'The Maverick', desc: 'More expansive and pleasure-seeking. The 7-wing makes the Eight more visionary, charismatic, and energetically restless.' },
+    { w: 9, label: 'type-eight-wing-nine', title: 'The Bear', desc: 'More calm and receptive. The 9-wing softens the Eight\'s intensity with patience and a more measured approach to power.' },
   ],
   9: [
-    { w: 8, label: '9w8', title: 'The Referee', desc: 'More assertive and energetic. The 8-wing gives the Nine greater confidence, decisiveness, and a stronger sense of presence.' },
-    { w: 1, label: '9w1', title: 'The Dreamer', desc: 'More principled and orderly. The 1-wing channels the Nine\'s acceptance into quiet idealism and a gentle moral compass.' },
+    { w: 8, label: 'type-nine-wing-eight', title: 'The Referee', desc: 'More assertive and energetic. The 8-wing gives the Nine greater confidence, decisiveness, and a stronger sense of presence.' },
+    { w: 1, label: 'type-nine-wing-one', title: 'The Dreamer', desc: 'More principled and orderly. The 1-wing channels the Nine\'s acceptance into quiet idealism and a gentle moral compass.' },
   ],
 };
 
@@ -911,11 +912,11 @@ async function applyLabel() {
   // Build label value based on what was selected
   let labelVal;
   if (selectedType && selectedWing && selectedSubtype) {
-    labelVal = `e${selectedType}w${selectedWing}-${selectedSubtype}`;
+    labelVal = `type-${NUM_WORD[selectedType]}-wing-${NUM_WORD[selectedWing]}-${selectedSubtype}`;
   } else if (selectedType && selectedWing) {
-    labelVal = `e${selectedType}w${selectedWing}`;
+    labelVal = `type-${NUM_WORD[selectedType]}-wing-${NUM_WORD[selectedWing]}`;
   } else {
-    labelVal = `e${selectedType}`;
+    labelVal = `type-${NUM_WORD[selectedType]}`;
   }
 
   // Update label filter to catch all enneagram label formats
