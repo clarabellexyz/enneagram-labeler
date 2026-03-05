@@ -756,8 +756,8 @@ function selectType(n) {
   const wingColor = t.color;
   wgrid.innerHTML = wings.map(w => `
     <button class="subtype-btn" id="wing-${w.w}" onclick="selectWing(${w.w})" style="--type-color:${wingColor}">
-      <span class="subtype-symbol" style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-style:italic;color:${wingColor}">${w.label}</span>
-      <span class="subtype-name">${w.title}</span>
+      <span class="subtype-symbol" style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-style:italic;color:${wingColor}">${w.title}</span>
+      <span class="subtype-name">${selectedType}w${w.w}</span>
     </button>
   `).join('');
 
