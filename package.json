@@ -1,0 +1,16 @@
+{
+  "name": "enneagram-labeler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --minify --outfile=app.js"
+  },
+  "dependencies": {
+    "@atproto/oauth-client-browser": "0.3.42",
+    "@atproto/api": "0.20.9"
+  },
+  "devDependencies": {
+    "esbuild": "latest"
+  }
+}
