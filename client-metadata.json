@@ -1,0 +1,12 @@
+{
+  "client_id": "https://enneagram.blue/client-metadata.json",
+  "client_name": "Enneagram Labeler",
+  "client_uri": "https://enneagram.blue",
+  "redirect_uris": ["https://enneagram.blue/"],
+  "scope": "atproto rpc:blue.enneagram.applyLabel?aud=did:plc:6k2b2myab3zpqivzvyym4cp5#atproto_labeler",
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}
