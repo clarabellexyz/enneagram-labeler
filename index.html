@@ -526,23 +526,17 @@
   <!-- AUTH SECTION -->
   <div id="auth-section" class="section active">
     <div class="card">
-      <div class="card-label">Sign in to Bluesky</div>
+      <div class="card-label">Sign in with Bluesky</div>
 
       <div class="auth-field">
-        <label>Handle or Email</label>
+        <label>Your Bluesky Handle</label>
         <input type="text" id="identifier" placeholder="you.bsky.social" autocomplete="username" />
-      </div>
-
-      <div class="auth-field">
-        <label>App Password</label>
-        <input type="password" id="password" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="current-password" />
-        <p class="hint">⚠ Use an <strong>App Password</strong> — never your main password.<br>
-          Create one at: Settings → Privacy & Security → App Passwords</p>
+        <p class="hint">You'll be sent to Bluesky's own login page to approve. We only ask to verify your identity &mdash; your password is never shared with this site.</p>
       </div>
 
       <button class="btn btn-sky" id="login-btn" onclick="login()">
         <svg width="16" height="16" viewBox="0 0 568 501" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M123.121 33.664C188.661 82.777 258.906 182.403 284 234.34c25.094-51.937 95.339-151.563 160.879-200.676C491.866-1.473 568-30.38 568 120.694c0 28.916-16.551 242.898-26.265 277.7-33.842 121.22-157.507 152.219-267.138 168.004 192.12-32.588 241.19-157.839 135.477-283.24C364.919 236.7 298.317 183.025 284 131.59c-14.317 51.435-80.919 105.11-126.074 151.568C51.214 408.557 102.284 533.808 294.404 566.396c-109.631-15.785-233.296-46.784-267.138-168.004C17.551 363.592 1 149.61 1 120.694 1-30.38 77.134-1.473 123.121 33.664Z" fill="currentColor"/></svg>
-        Connect with Bluesky
+        Sign in with Bluesky
       </button>
 
       <div id="auth-status" class="status"></div>
@@ -647,16 +641,29 @@
       <div id="apply-status" class="status"></div>
     </div>
 
+    <div class="card" id="subscribe-card">
+      <div class="card-label">Make your label visible</div>
+      <p style="font-size:0.75rem; line-height:1.7; color:var(--text-dim); margin-bottom:18px;">
+        Enneagram labels only show up for people <strong style="color:var(--text); font-weight:400;">subscribed to this labeler</strong>. Subscribe and like it on Bluesky so your label — and everyone else's — appears.
+      </p>
+      <a class="btn btn-sky" href="https://bsky.app/profile/did:plc:6k2b2myab3zpqivzvyym4cp5" target="_blank" rel="noopener" style="text-decoration:none;">
+        ⬡&nbsp; Subscribe &amp; like on Bluesky
+      </a>
+    </div>
+
   </div>
 
 </div>
 
 <footer>
   <p>Labels are self-reported and unverified &nbsp;·&nbsp; Built for the <a href="https://bsky.app" target="_blank">Bluesky</a> ecosystem</p>
-  <p style="margin-top:6px;">Uses the AT Protocol · App passwords only · No data stored</p>
+  <p style="margin-top:6px;">Uses the AT Protocol · Secure Bluesky sign-in · No data stored</p>
 </footer>
 
-<script>
+<script type="module">
+import { BrowserOAuthClient } from "https://esm.sh/@atproto/oauth-client-browser@0.3.42";
+import { Agent } from "https://esm.sh/@atproto/api@0.20.9";
+
 // ─── Data ───────────────────────────────────────────────────────────────────
 const TYPES = [
   { n:1, name:'The Reformer',   color:'#c4a882', desc:'Principled, purposeful, self-controlled, and perfectionistic. Ones fear being corrupt or defective and desire to be good and have integrity.' },
@@ -713,16 +720,58 @@ const WINGS = {
   ],
 };
 
+// ─── Config ──────────────────────────────────────────────────────────────────
+const LABELER_DID = 'did:plc:6k2b2myab3zpqivzvyym4cp5';
+const LABELER_AUD = LABELER_DID + '#atproto_labeler';
+const LXM = 'blue.enneagram.applyLabel';
+const CLIENT_ID = 'https://enneagram.blue/client-metadata.json';
+const BACKEND = 'https://label.enneagram.blue';
+const SCOPE = `atproto rpc:${LXM}?aud=${LABELER_AUD}`;
+
+// Capture the original sign-in button markup (incl. the Bluesky logo) so we can
+// restore it after a spinner, without duplicating the SVG in JS.
+const loginBtnEl = document.getElementById('login-btn');
+const SIGNIN_BTN_HTML = loginBtnEl ? loginBtnEl.innerHTML : 'Sign in with Bluesky';
+
 // ─── State ───────────────────────────────────────────────────────────────────
-let session = null;
+let oauthClient = null;
+let agent = null;
+let userDid = null;
 let selectedType = null;
 let selectedWing = null;
 let selectedSubtype = null;
 
-// ─── Labeler DID - Replace with your actual labeler DID ─────────────────────
-// To run a real labeler you need a labeler service. This demo shows the UI flow.
-// For a self-labeling approach, we'll use a labeler service or the ozone API.
-const LABELER_DID = 'did:plc:6k2b2myab3zpqivzvyym4cp5'; // <-- replace this
+// ─── OAuth setup ──────────────────────────────────────────────────────────────
+async function initOAuth() {
+  const clientMetadata = await (await fetch(CLIENT_ID)).json();
+  oauthClient = new BrowserOAuthClient({
+    clientMetadata,
+    handleResolver: 'https://bsky.social',
+  });
+  // init() completes a returning login redirect OR restores a saved session.
+  const result = await oauthClient.init();
+  if (result?.session) {
+    await startSession(result.session);
+  }
+}
+
+async function startSession(oauthSession) {
+  agent = new Agent(oauthSession);
+  userDid = agent.did || agent.accountDid;
+  await loadProfile();
+  showLabeler();
+}
+
+// Mint a short-lived token that ONLY works for this labeler. This is the single
+// thing the login permission grants — the backend uses it to confirm who you are.
+async function mintLabelerToken() {
+  const { data } = await agent.com.atproto.server.getServiceAuth({
+    aud: LABELER_AUD,
+    lxm: LXM,
+    exp: Math.floor(Date.now() / 1000) + 60,
+  });
+  return data.token;
+}
 
 // ─── Render types ────────────────────────────────────────────────────────────
 function renderTypes() {
@@ -832,55 +881,45 @@ function updatePreview() {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function login() {
   const identifier = document.getElementById('identifier').value.trim();
-  const password = document.getElementById('password').value.trim();
   const btn = document.getElementById('login-btn');
   const status = document.getElementById('auth-status');
 
-  if (!identifier || !password) {
-    showStatus(status, 'error', 'Please enter your handle and app password.');
+  if (!identifier) {
+    showStatus(status, 'error', 'Please enter your Bluesky handle.');
+    return;
+  }
+  if (!oauthClient) {
+    showStatus(status, 'error', 'Still starting up — please try again in a moment.');
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Connecting...';
-  showStatus(status, 'info', 'Authenticating with Bluesky...');
+  btn.innerHTML = '<span class="spinner"></span> Redirecting to Bluesky…';
+  showStatus(status, 'info', 'Sending you to Bluesky to sign in…');
 
   try {
-    const res = await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.message || data.error || 'Authentication failed');
-    }
-
-    session = data;
-    await loadProfile();
-    showLabeler();
-
+    // This redirects the browser to Bluesky's login page. On success the page
+    // navigates away, so nothing after this line runs.
+    await oauthClient.signIn(identifier, { scope: SCOPE });
   } catch (e) {
-    showStatus(status, 'error', `Error: ${e.message}`);
+    showStatus(status, 'error', friendlyError(e));
     btn.disabled = false;
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 568 501" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M123.121 33.664C188.661 82.777 258.906 182.403 284 234.34c25.094-51.937 95.339-151.563 160.879-200.676C491.866-1.473 568-30.38 568 120.694c0 28.916-16.551 242.898-26.265 277.7-33.842 121.22-157.507 152.219-267.138 168.004 192.12-32.588 241.19-157.839 135.477-283.24C364.919 236.7 298.317 183.025 284 131.59c-14.317 51.435-80.919 105.11-126.074 151.568C51.214 408.557 102.284 533.808 294.404 566.396c-109.631-15.785-233.296-46.784-267.138-168.004C17.551 363.592 1 149.61 1 120.694 1-30.38 77.134-1.473 123.121 33.664Z" fill="currentColor"/></svg> Connect with Bluesky`;
+    btn.innerHTML = SIGNIN_BTN_HTML;
   }
 }
 
 async function loadProfile() {
-  const res = await fetch(`https://bsky.social/xrpc/app.bsky.actor.getProfile?actor=${session.handle}`, {
-    headers: { 'Authorization': `Bearer ${session.accessJwt}` }
-  });
-  const profile = await res.json();
-
-  document.getElementById('display-name').textContent = profile.displayName || session.handle;
-  document.getElementById('handle-display').textContent = `@${session.handle}`;
-
-  const avatarEl = document.getElementById('avatar-img');
-  if (profile.avatar) {
-    avatarEl.innerHTML = `<img src="${profile.avatar}" alt="avatar" />`;
+  // Profiles are public — read it straight from the public AppView, no auth needed.
+  try {
+    const res = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(userDid)}`);
+    const p = await res.json();
+    document.getElementById('display-name').textContent = p.displayName || p.handle || 'Signed in';
+    document.getElementById('handle-display').textContent = p.handle ? `@${p.handle}` : '';
+    if (p.avatar) {
+      document.getElementById('avatar-img').innerHTML = `<img src="${p.avatar}" alt="avatar" />`;
+    }
+  } catch (e) {
+    document.getElementById('display-name').textContent = 'Signed in';
   }
 }
 
@@ -890,16 +929,22 @@ function showLabeler() {
   renderTypes();
 }
 
-function logout() {
-  session = null;
+async function logout() {
+  try {
+    if (agent && typeof agent.signOut === 'function') await agent.signOut();
+  } catch (e) { /* ignore */ }
+  agent = null;
+  userDid = null;
   selectedType = null;
   selectedWing = null;
   selectedSubtype = null;
   document.getElementById('auth-section').classList.add('active');
   document.getElementById('labeler-section').classList.remove('active');
   document.getElementById('identifier').value = '';
-  document.getElementById('password').value = '';
   document.getElementById('auth-status').className = 'status';
+  const btn = document.getElementById('login-btn');
+  btn.disabled = false;
+  btn.innerHTML = SIGNIN_BTN_HTML;
 }
 
 // ─── Apply Label ──────────────────────────────────────────────────────────────
@@ -919,22 +964,19 @@ async function applyLabel() {
     labelVal = `type-${NUM_WORD[selectedType]}`;
   }
 
-  // Update label filter to catch all enneagram label formats
-  const ENNEAGRAM_REGEX = /^e[1-9](w[1-9](-(sp|so|sx))?)?$/;
-
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Applying...';
-  showStatus(status, 'info', 'Sending label to your profile...');
+  btn.innerHTML = '<span class="spinner"></span> Applying…';
+  showStatus(status, 'info', 'Sending label to your profile…');
 
   try {
-    const res = await fetch('https://label.enneagram.blue/apply-label', {
+    const token = await mintLabelerToken();
+    const res = await fetch(`${BACKEND}/apply-label`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessJwt: session.accessJwt, label: labelVal })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ label: labelVal })
     });
 
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.error || 'Failed to apply label');
 
     const typeName = TYPES.find(t => t.n === selectedType)?.name;
@@ -946,7 +988,7 @@ async function applyLabel() {
     );
 
   } catch (e) {
-    showStatus(status, 'error', `Error: ${e.message}`);
+    showStatus(status, 'error', friendlyError(e));
   }
 
   btn.disabled = false;
@@ -956,43 +998,53 @@ async function applyLabel() {
 async function removeLabel() {
   const status = document.getElementById('apply-status');
 
+  if (!agent) { return; }
   if (!confirm('Remove your Enneagram label from your profile?')) return;
 
-  showStatus(status, 'info', 'Removing label...');
+  showStatus(status, 'info', 'Removing label…');
 
   try {
-    // Remove labeler-emitted labels
-    await fetch('https://label.enneagram.blue/remove-label', {
+    const token = await mintLabelerToken();
+    const res = await fetch(`${BACKEND}/remove-label`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessJwt: session.accessJwt })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({})
     });
-
-    // Also remove any old self-labels
-    await fetch('https://label.enneagram.blue/remove-self-label', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessJwt: session.accessJwt })
-    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to remove label');
 
     showStatus(status, 'success', '✓ Enneagram label removed from your profile.');
   } catch (e) {
-    showStatus(status, 'error', `Error: ${e.message}`);
+    showStatus(status, 'error', friendlyError(e));
   }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+function friendlyError(e) {
+  const msg = (e && e.message) ? e.message : String(e);
+  if (/scope|forbidden|permission|unauthor/i.test(msg)) {
+    return `Error: ${msg}\n\nIf this keeps happening, your Bluesky server may not yet support this newer sign-in method. Most bsky.social accounts work fine.`;
+  }
+  return `Error: ${msg}`;
+}
+
 function showStatus(el, type, msg) {
   el.className = `status show ${type}`;
   el.style.whiteSpace = 'pre-line';
   el.textContent = msg;
 }
 
-// Enter key on password field
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('password')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') login();
-  });
+// ─── Wire up inline onclick handlers + start ──────────────────────────────────
+Object.assign(window, { login, logout, selectType, selectWing, skipWing, skipSubtype, selectSubtype, applyLabel, removeLabel });
+
+document.getElementById('identifier')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+initOAuth().catch(e => {
+  console.error(e);
+  const status = document.getElementById('auth-status');
+  if (status) showStatus(status, 'error', 'Could not start sign-in. Please refresh the page.');
 });
 </script>
 </body>
